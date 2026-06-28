@@ -182,3 +182,4 @@ CKEDITOR_CONFIGS = {
         # ),
     }
 }
+ALLOWED_HOSTS = ["98.93.246.169", "localhost", "127.0.0.1"]
