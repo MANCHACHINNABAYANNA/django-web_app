@@ -1,0 +1,60 @@
+
+name: Sync Source to Destination
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repo-sync-main
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync Main Branch
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configure Destination Remote
+        env:
+          REPO_SYNC_TOKEN: ${{ secrets.REPO_SYNC_TOKEN }}
+        run: |
+          git remote add destination \
+            https://x-access-token:${REPO_SYNC_TOKEN}@github.com/MANCHACHINNABAYANNA/Repo_sync.git
+
+      - name: Fetch Destination Main
+        run: |
+          git fetch destination \
+            refs/heads/main:refs/remotes/destination/main
+
+      - name: Sync Source Main to Destination Main
+        run: |
+          EXPECTED_SHA=$(git rev-parse refs/remotes/destination/main)
+
+          git push \
+            --force-with-lease=refs/heads/main:$EXPECTED_SHA \
+            destination HEAD:refs/heads/main
+
+      - name: Sync Completed
+        run: |
+          echo "Source main successfully synchronized to destination main."
